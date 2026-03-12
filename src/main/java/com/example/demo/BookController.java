@@ -30,4 +30,32 @@ public class BookController {
                                         @RequestParam(value = "startIndex", required = false) Integer startIndex) {
         return googleBookService.searchBooks(query, maxResults, startIndex);
     }
+
+    @PostMapping("/books/{googleId}")
+    @ResponseStatus(org.springframework.http.HttpStatus.CREATED)
+    public Book addBook(@PathVariable String googleId) {
+
+        GoogleBook.Item googleBook = googleBookService.getBookById(googleId);
+
+        if (googleBook == null || googleBook.volumeInfo() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Invalid Google Book ID"
+            );
+        }
+
+        var volume = googleBook.volumeInfo();
+
+        Book book = new Book();
+        book.setId(googleBook.id());
+        book.setTitle(volume.title());
+        book.setAuthor(
+                volume.authors() != null && !volume.authors().isEmpty()
+                        ? volume.authors().get(0)
+                        : "Unknown"
+        );
+        book.setPageCount(volume.pageCount());
+
+        return bookRepository.save(book);
+    }    
 }
